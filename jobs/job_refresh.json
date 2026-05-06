@@ -1,0 +1,410 @@
+{
+  "name": "Orkestra-ETL",
+  "email_notifications": {
+    "no_alert_for_skipped_runs": false
+  },
+  "webhook_notifications": {},
+  "timeout_seconds": 0,
+  "schedule": {
+    "quartz_cron_expression": "32 0 3 * * ?",
+    "timezone_id": "America/Sao_Paulo",
+    "pause_status": "UNPAUSED"
+  },
+  "max_concurrent_runs": 1,
+  "tasks": [
+    {
+      "task_key": "create_databases",
+      "run_if": "ALL_SUCCESS",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/gabriel_gm23@hotmail.com/Orkestra-ETL/Notebooks/00_setup/00_cluster_setup",
+        "source": "WORKSPACE"
+      },
+      "timeout_seconds": 0,
+      "email_notifications": {},
+      "webhook_notifications": {}
+    },
+    {
+      "task_key": "setup_cluster",
+      "run_if": "ALL_SUCCESS",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/gabriel_gm23@hotmail.com/Orkestra-ETL/Notebooks/00_setup/setup_master",
+        "source": "WORKSPACE"
+      },
+      "timeout_seconds": 0,
+      "email_notifications": {},
+      "webhook_notifications": {}
+    },
+    {
+      "task_key": "ingest_events",
+      "depends_on": [
+        {
+          "task_key": "setup_cluster"
+        },
+        {
+          "task_key": "create_databases"
+        }
+      ],
+      "run_if": "ALL_SUCCESS",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/gabriel_gm23@hotmail.com/Orkestra-ETL/Notebooks/01_bronze/ingest_events",
+        "source": "WORKSPACE"
+      },
+      "timeout_seconds": 0,
+      "email_notifications": {},
+      "webhook_notifications": {}
+    },
+    {
+      "task_key": "load_seeds",
+      "depends_on": [
+        {
+          "task_key": "create_databases"
+        },
+        {
+          "task_key": "setup_cluster"
+        }
+      ],
+      "run_if": "ALL_SUCCESS",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/gabriel_gm23@hotmail.com/Orkestra-ETL/Notebooks/01_bronze/01_load_seeds",
+        "source": "WORKSPACE"
+      },
+      "timeout_seconds": 0,
+      "email_notifications": {},
+      "webhook_notifications": {}
+    },
+    {
+      "task_key": "commerce_transformations",
+      "depends_on": [
+        {
+          "task_key": "ingest_events"
+        },
+        {
+          "task_key": "load_seeds"
+        }
+      ],
+      "run_if": "ALL_SUCCESS",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/gabriel_gm23@hotmail.com/Orkestra-ETL/Notebooks/02_silver/silver_commerce",
+        "source": "WORKSPACE"
+      },
+      "timeout_seconds": 0,
+      "email_notifications": {},
+      "webhook_notifications": {}
+    },
+    {
+      "task_key": "events_transformations",
+      "depends_on": [
+        {
+          "task_key": "ingest_events"
+        },
+        {
+          "task_key": "load_seeds"
+        }
+      ],
+      "run_if": "ALL_SUCCESS",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/gabriel_gm23@hotmail.com/Orkestra-ETL/Notebooks/02_silver/silver_events",
+        "source": "WORKSPACE"
+      },
+      "timeout_seconds": 0,
+      "email_notifications": {},
+      "webhook_notifications": {}
+    },
+    {
+      "task_key": "expenses_transformations",
+      "depends_on": [
+        {
+          "task_key": "ingest_events"
+        },
+        {
+          "task_key": "load_seeds"
+        }
+      ],
+      "run_if": "ALL_SUCCESS",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/gabriel_gm23@hotmail.com/Orkestra-ETL/Notebooks/02_silver/silver_expenses",
+        "source": "WORKSPACE"
+      },
+      "timeout_seconds": 0,
+      "email_notifications": {},
+      "webhook_notifications": {}
+    },
+    {
+      "task_key": "orders_items_transformations",
+      "depends_on": [
+        {
+          "task_key": "ingest_events"
+        },
+        {
+          "task_key": "load_seeds"
+        }
+      ],
+      "run_if": "ALL_SUCCESS",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/gabriel_gm23@hotmail.com/Orkestra-ETL/Notebooks/02_silver/silver_ticket_orders",
+        "source": "WORKSPACE"
+      },
+      "timeout_seconds": 0,
+      "email_notifications": {},
+      "webhook_notifications": {}
+    },
+    {
+      "task_key": "ticket_orders_transformations",
+      "depends_on": [
+        {
+          "task_key": "load_seeds"
+        },
+        {
+          "task_key": "ingest_events"
+        }
+      ],
+      "run_if": "ALL_SUCCESS",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/gabriel_gm23@hotmail.com/Orkestra-ETL/Notebooks/02_silver/silver_ticket_order_items",
+        "source": "WORKSPACE"
+      },
+      "timeout_seconds": 0,
+      "email_notifications": {},
+      "webhook_notifications": {}
+    },
+    {
+      "task_key": "user_pseudonymization",
+      "depends_on": [
+        {
+          "task_key": "load_seeds"
+        },
+        {
+          "task_key": "ingest_events"
+        }
+      ],
+      "run_if": "ALL_SUCCESS",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/gabriel_gm23@hotmail.com/Orkestra-ETL/Notebooks/02_silver/silver_users_anon",
+        "source": "WORKSPACE"
+      },
+      "timeout_seconds": 0,
+      "email_notifications": {},
+      "webhook_notifications": {}
+    },
+    {
+      "task_key": "gold_ai_consumer_behavior",
+      "depends_on": [
+        {
+          "task_key": "expenses_transformations"
+        },
+        {
+          "task_key": "commerce_transformations"
+        },
+        {
+          "task_key": "user_pseudonymization"
+        },
+        {
+          "task_key": "events_transformations"
+        },
+        {
+          "task_key": "orders_items_transformations"
+        },
+        {
+          "task_key": "ticket_orders_transformations"
+        }
+      ],
+      "run_if": "ALL_SUCCESS",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/gabriel_gm23@hotmail.com/Orkestra-ETL/Notebooks/04_gold_ai/features_consumer_behavior",
+        "source": "WORKSPACE"
+      },
+      "timeout_seconds": 0,
+      "email_notifications": {},
+      "webhook_notifications": {}
+    },
+    {
+      "task_key": "gold_ai_demand_signals",
+      "depends_on": [
+        {
+          "task_key": "expenses_transformations"
+        },
+        {
+          "task_key": "commerce_transformations"
+        },
+        {
+          "task_key": "user_pseudonymization"
+        },
+        {
+          "task_key": "events_transformations"
+        },
+        {
+          "task_key": "orders_items_transformations"
+        },
+        {
+          "task_key": "ticket_orders_transformations"
+        }
+      ],
+      "run_if": "ALL_SUCCESS",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/gabriel_gm23@hotmail.com/Orkestra-ETL/Notebooks/04_gold_ai/features_demand_signals",
+        "source": "WORKSPACE"
+      },
+      "timeout_seconds": 0,
+      "email_notifications": {},
+      "webhook_notifications": {}
+    },
+    {
+      "task_key": "gold_ai_event_profile",
+      "depends_on": [
+        {
+          "task_key": "expenses_transformations"
+        },
+        {
+          "task_key": "commerce_transformations"
+        },
+        {
+          "task_key": "user_pseudonymization"
+        },
+        {
+          "task_key": "events_transformations"
+        },
+        {
+          "task_key": "orders_items_transformations"
+        },
+        {
+          "task_key": "ticket_orders_transformations"
+        }
+      ],
+      "run_if": "ALL_SUCCESS",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/gabriel_gm23@hotmail.com/Orkestra-ETL/Notebooks/04_gold_ai/features_event_profile",
+        "source": "WORKSPACE"
+      },
+      "timeout_seconds": 0,
+      "email_notifications": {},
+      "webhook_notifications": {}
+    },
+    {
+      "task_key": "gold_bi_budget_actual",
+      "depends_on": [
+        {
+          "task_key": "expenses_transformations"
+        },
+        {
+          "task_key": "commerce_transformations"
+        },
+        {
+          "task_key": "user_pseudonymization"
+        },
+        {
+          "task_key": "events_transformations"
+        },
+        {
+          "task_key": "orders_items_transformations"
+        },
+        {
+          "task_key": "ticket_orders_transformations"
+        }
+      ],
+      "run_if": "ALL_SUCCESS",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/gabriel_gm23@hotmail.com/Orkestra-ETL/Notebooks/03_gold_bi/fact_budget_vs_actual",
+        "source": "WORKSPACE"
+      },
+      "timeout_seconds": 0,
+      "email_notifications": {},
+      "webhook_notifications": {}
+    },
+    {
+      "task_key": "gold_bi_dim_dates",
+      "depends_on": [
+        {
+          "task_key": "expenses_transformations"
+        },
+        {
+          "task_key": "commerce_transformations"
+        },
+        {
+          "task_key": "user_pseudonymization"
+        },
+        {
+          "task_key": "events_transformations"
+        },
+        {
+          "task_key": "orders_items_transformations"
+        },
+        {
+          "task_key": "ticket_orders_transformations"
+        }
+      ],
+      "run_if": "ALL_SUCCESS",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/gabriel_gm23@hotmail.com/Orkestra-ETL/Notebooks/03_gold_bi/dim_dates",
+        "source": "WORKSPACE"
+      },
+      "timeout_seconds": 0,
+      "email_notifications": {},
+      "webhook_notifications": {}
+    },
+    {
+      "task_key": "gold_bi_event_revenue",
+      "depends_on": [
+        {
+          "task_key": "expenses_transformations"
+        },
+        {
+          "task_key": "commerce_transformations"
+        },
+        {
+          "task_key": "user_pseudonymization"
+        },
+        {
+          "task_key": "events_transformations"
+        },
+        {
+          "task_key": "orders_items_transformations"
+        },
+        {
+          "task_key": "ticket_orders_transformations"
+        }
+      ],
+      "run_if": "ALL_SUCCESS",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/gabriel_gm23@hotmail.com/Orkestra-ETL/Notebooks/03_gold_bi/fact_event_revenue",
+        "source": "WORKSPACE"
+      },
+      "timeout_seconds": 0,
+      "email_notifications": {},
+      "webhook_notifications": {}
+    },
+    {
+      "task_key": "gold_bi_ticket_sales",
+      "depends_on": [
+        {
+          "task_key": "expenses_transformations"
+        },
+        {
+          "task_key": "commerce_transformations"
+        },
+        {
+          "task_key": "user_pseudonymization"
+        },
+        {
+          "task_key": "events_transformations"
+        },
+        {
+          "task_key": "orders_items_transformations"
+        },
+        {
+          "task_key": "ticket_orders_transformations"
+        }
+      ],
+      "run_if": "ALL_SUCCESS",
+      "notebook_task": {
+        "notebook_path": "/Workspace/Users/gabriel_gm23@hotmail.com/Orkestra-ETL/Notebooks/03_gold_bi/fact_ticket_sales",
+        "source": "WORKSPACE"
+      },
+      "timeout_seconds": 0,
+      "email_notifications": {}
+    }
+  ],
+  "queue": {
+    "enabled": true
+  },
+  "performance_target": "PERFORMANCE_OPTIMIZED"
+}
